@@ -1,2 +1,7 @@
 # IntrusionDetector
-Intrusion Detection Learning adapted from http://kdd.ics.uci.edu/databases/kddcup99/task.html
+Intrusion Detection Learning adapted from [KDD](http://kdd.ics.uci.edu/databases/kddcup99/task.html)
+
+## Data
+
+## Models
+
