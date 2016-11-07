@@ -1,3 +1,4 @@
+library(ISLR)
 
 getwd()
 
@@ -113,6 +114,15 @@ proc.time() - glm.fit.time
 summary(glm.fit)
 mean(glm.pred == train$access_type)
 ##### End Block
+
+##### LDA
+lda.fit = lda(train$connection_type~.-train$connection_type-train$num_outbound_cmds-train$access_type, data = train)
+lda.pred = predict(lda.fit, train$connection_type)
+table(lda.pred, train$connection_type)
+
+mean(lda.pred, train$connection_type)
+
+##### END BLOCK
 
 run_qda = function() {
   qda.time <- proc.time()
