@@ -101,7 +101,14 @@ kddcup.data.ten.percent$access_type[kddcup.data.ten.percent$connection_type %in%
 # kddcup.data.ten.percent$connection_type = substr(connection_types, 0, nchar(connection_types)-1)
 ##### End Block
 
-train = kddcup.data.ten.percent
+set.seed(420)
+train = kddcup.data
+train.good = train[train$access_type == "Good", ]
+train.bad = train[train$access_type == "Bad", ]
+train.good.75k = train.good[sample(nrow(train.good), size = 75000, replace = TRUE), ]
+train.bad.75k = train.bad[sample(nrow(train.bad), size = 75000, replace = TRUE), ]
+train.150k = rbind(train.good.75k, train.bad.75k)
+test.150k = kddcup.testdata[sample(nrow(kddcup.testdata), size = 150000, replace = TRUE), ]
 
 ##### Logisitc Regression
 glm.fit.time <- proc.time()
@@ -117,21 +124,9 @@ mean(glm.pred == train$access_type)
 library(ISLR)
 library(MASS)
 ##### LDA
-lda.time <- proc.time()
-lda.fit = lda(train$connection_type~train$protocol_type+train$service+train$flag+train$src_bytes+train$dst_bytes+train$land+train$count+train$srv_count, data=train)
-lda.pred = predict(lda.fit, train$connection_type)
+lda.fit = lda(train$connection_type~train$flag + train$access_type + train$num_outbound_cmds, data=train, family = binomial)
+lda.pred = predict(lda.fit, train$connection_type, type = "response")
 table(lda.pred$class, train$connection_type)
 mean(lda.pred$class == train$connection_type)
 proc.time() - lda.time
 ##### End Block
-
-run_qda = function() {
-  qda.time <- proc.time()
-  
-  qda.fit = qda(connection_type~.-connection_type, data=train)
-  #qda.class = predict(qda.fit, Weekly.09_2_10)$class
-  #table(qda.class, Direction.09_2_10)
-  
-  #mean(qda.class == Direction.09_2_10)
-  proc.time() - qda.time
-}
