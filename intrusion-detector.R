@@ -1,8 +1,10 @@
 library(ISLR)
+library(MASS)
 
-getwd()
+# Data Setup --------------------------------------------------------------
+# setwd("path to directory where the data files are stored")
+getwd() # to check if the working directory is the correct path
 
-##### Setup Data
 kddcup.data = read.csv("kddcup.data.csv")
 kddcup.data.ten.percent = read.csv("kddcup.data_10_percent.csv")
 kddcup.testdata = read.csv("kddcup.testdata.csv")
@@ -94,39 +96,52 @@ kddcup.data.ten.percent$access_type = "Good"
 
 kddcup.data$access_type[kddcup.data$connection_type %in% bad_connections] = "Bad"
 kddcup.data.ten.percent$access_type[kddcup.data.ten.percent$connection_type %in% bad_connections] = "Bad"
-##### End Block
 
 ##### Remove Random Period From The Dataset
 # connection_types <- data.frame(kddcup.data.ten.percent$connection_type)
 # kddcup.data.ten.percent$connection_type = substr(connection_types, 0, nchar(connection_types)-1)
-##### End Block
 
+
+# Trainng and Testing Set Sample ------------------------------------------
 set.seed(420)
+
 train = kddcup.data
+
 train.good = train[train$access_type == "Good", ]
 train.bad = train[train$access_type == "Bad", ]
-train.good.75k = train.good[sample(nrow(train.good), size = 75000, replace = TRUE), ]
-train.bad.75k = train.bad[sample(nrow(train.bad), size = 75000, replace = TRUE), ]
-train.150k = rbind(train.good.75k, train.bad.75k)
-test.150k = kddcup.testdata[sample(nrow(kddcup.testdata), size = 150000, replace = TRUE), ]
+train.good.1 = train.good[sample(nrow(train.good), size = 500000, replace = FALSE), ]
+train.bad.1 = train.bad[sample(nrow(train.bad), size = 500000, replace = FALSE), ]
+train.1M = rbind(train.good.1, train.bad.1)
 
-##### Logisitc Regression
+rm(train.good)
+rm(train.bad)
+rm(train.good.1)
+rm(train.bad.1)
+
+test.1 = kddcup.data.ten.percent[!kddcup.data.ten.percent$service == "pm_dump", ]
+test.2 = kddcup.testdata[sample(nrow(kddcup.testdata), size = 1000000, replace = FALSE), ]
+
+# Logistic Regression -----------------------------------------------------
 glm.fit.time <- proc.time()
-glm.fit = glm(train$connection_type~.-train$connection_type-train$num_outbound_cmds-train$access_type, data=train, family=binomial)
-glm.probs = predict(glm.fit, type="response")
-glm.pred = rep("Good", length(glm.probs))
-glm.pred[glm.probs > 0.5] = "Bad"
-proc.time() - glm.fit.time 
 
+glm.fit = glm(access_type~.-num_outbound_cmds-connection_type, data=train.1M, family=binomial)
 summary(glm.fit)
-mean(glm.pred == train$access_type)
-##### End Block
-library(ISLR)
-library(MASS)
-##### LDA
+glm.probs = predict(glm.fit, newdata = test.1, type = "response")
+glm.pred = ifelse(glm.probs > 0.5, 1, 0)
+glm.pred.accesses = test.1$access_type
+
+glm.time = proc.time() - glm.fit.time
+glm.time[3]/60
+
+table(glm.pred, glm.pred.accesses)
+mean(glm.pred == glm.pred.accesses)
+
+
+# Linear Discriminant Analysis (LDA) --------------------------------------
 lda.fit = lda(train$connection_type~train$flag + train$access_type + train$num_outbound_cmds, data=train, family = binomial)
 lda.pred = predict(lda.fit, train$connection_type, type = "response")
 table(lda.pred$class, train$connection_type)
 mean(lda.pred$class == train$connection_type)
 proc.time() - lda.time
-##### End Block
+
+
