@@ -97,15 +97,51 @@ kddcup.data.ten.percent$access_type = "Good"
 kddcup.data$access_type[kddcup.data$connection_type %in% bad_connections] = "Bad"
 kddcup.data.ten.percent$access_type[kddcup.data.ten.percent$connection_type %in% bad_connections] = "Bad"
 
+train = kddcup.data
+
 ##### Remove Random Period From The Dataset
 # connection_types <- data.frame(kddcup.data.ten.percent$connection_type)
 # kddcup.data.ten.percent$connection_type = substr(connection_types, 0, nchar(connection_types)-1)
 
 
-# Trainng and Testing Set Sample ------------------------------------------
-set.seed(420)
+# Feature Selection -------------------------------------------------------
+
+names(train)
+
+summary(train$connection_type)
+
+hist(train$duration)
+summary(train$duration)
+
+summary(train$protocol_type)
+
+summary(train$service)
+
+# Dimensionality Reduction ------------------------------------------------
+set.seed(666)
 
 train = kddcup.data
+train = train[train$duration < 1, ]
+
+train.protocol.icmp = train[train$protocol_type == "icmp", ]
+train.protocol.icmp = train.protocol.icmp[sample(nrow(train.protocol.icmp), size = 1750000, replace = FALSE), ]
+train.protocol.tcp = train[train$protocol_type == "tcp", ]
+train.protocol.tcp = train.protocol.tcp[sample(nrow(train.protocol.tcp), size = 1750000, replace = FALSE), ]
+train.protocol.udp = train[train$protocol_type == "udp", ]
+train.protocol.udp = train.protocol.udp[sample(nrow(train.protocol.udp), size = 1750000, replace = TRUE), ]
+
+train = rbind(train.protocol.icmp, train.protocol.tcp, train.protocol.icmp)
+
+rm(train.protocol.udp)
+rm(train.protocol.tcp)
+rm(train.protocol.icmp)
+
+unused.services <- c("domain_u", "http_2784", "ntp_u", "tftp_u")
+train = train[!train$service %in% unused.services, ]
+
+
+# Trainng and Testing Set Sample ------------------------------------------
+set.seed(420)
 
 train.good = train[train$access_type == "Good", ]
 train.bad = train[train$access_type == "Bad", ]
