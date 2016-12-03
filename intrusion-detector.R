@@ -105,8 +105,17 @@ train = kddcup.data
 
 
 # Feature Selection -------------------------------------------------------
-
-names(train)
+library(e1071)
+names = names(train)
+classes = sapply(train, class)
+par(mfrow=c(4,4))
+numeric.classes = c("integer", "numeric")
+for (name in names[classes %in% numeric.classes]) {
+  print(name)
+  hist.predictor = hist(train[,name], xlab=name)
+  hist.predictor
+  print(summary(hist.predictor$density))
+}
 
 summary(train$connection_type)
 
