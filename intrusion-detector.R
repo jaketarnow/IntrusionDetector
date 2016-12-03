@@ -1,5 +1,6 @@
 library(ISLR)
 library(MASS)
+library(e1071)
 
 # Data Setup --------------------------------------------------------------
 # setwd("path to directory where the data files are stored")
@@ -117,9 +118,21 @@ for (name in names[classes %in% numeric.classes]) {
   print(summary(hist.predictor$density))
 }
 
+
+# based off of the density skews, we can drop the following predictors
+# duration
+# src_bytes
+# dst_bytes
+# hot
+# num_compromised
+# num_root
+# count
+# srv_count
+
 summary(train$connection_type)
 
 hist(train$duration)
+skewness(train$duration)
 summary(train$duration)
 
 summary(train$protocol_type)
@@ -130,7 +143,23 @@ summary(train$service)
 set.seed(666)
 
 train = kddcup.data
-train = train[train$duration < 1, ]
+train = train[train$duration < 26.73927, ]  #From Skewness
+train = train[train$duration < 1, ]         #Using Histogram
+
+protocols = names(summary(train$protocol_type))
+services = names(summary(train$service))
+flags = names(summary(train$flag))
+
+train = train[0, ]
+sample.size = 1750000
+
+for (protocol in 1:length(protocols)) {
+  print(protocols[protocol])
+  train.sample = kddcup.data[kddcup.data$protocol_type == protocol, ]
+  train.sample = train.sample[sample(nrow(train.sample), size = sample.size, replace = nrow(train.sample) < sample.size), ]
+  train = rbind(train, train.sample)
+  print(nrow(train.sample) < sample.size)
+}
 
 train.protocol.icmp = train[train$protocol_type == "icmp", ]
 train.protocol.icmp = train.protocol.icmp[sample(nrow(train.protocol.icmp), size = 1750000, replace = FALSE), ]
@@ -147,6 +176,9 @@ rm(train.protocol.icmp)
 
 unused.services <- c("domain_u", "http_2784", "ntp_u", "tftp_u")
 train = train[!train$service %in% unused.services, ]
+
+
+unnecessary.features = c("duration", "connection_type", "access_type")
 
 
 # Trainng and Testing Set Sample ------------------------------------------
