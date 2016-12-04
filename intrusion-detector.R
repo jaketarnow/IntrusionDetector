@@ -106,7 +106,7 @@ train = kddcup.data
 
 
 # Feature Selection -------------------------------------------------------
-library(e1071)
+
 names = names(train)
 classes = sapply(train, class)
 par(mfrow=c(4,4))
@@ -139,47 +139,87 @@ summary(train$protocol_type)
 
 summary(train$service)
 
+unnecessary.features = c("duration", "connection_type", "access_type")
+
 # Dimensionality Reduction ------------------------------------------------
 set.seed(666)
 
+
+# Quick And Dirty Sampling ------------------------------------------------
 train = kddcup.data
-train = train[train$duration < 26.73927, ]  #From Skewness
-train = train[train$duration < 1, ]         #Using Histogram
 
 protocols = names(summary(train$protocol_type))
 services = names(summary(train$service))
 flags = names(summary(train$flag))
 
-train = train[0, ]
-sample.size = 1750000
+new.train = train[0, ]
+sample.size = 2750000
 
 for (protocol in 1:length(protocols)) {
   print(protocols[protocol])
-  train.sample = kddcup.data[kddcup.data$protocol_type == protocol, ]
-  train.sample = train.sample[sample(nrow(train.sample), size = sample.size, replace = nrow(train.sample) < sample.size), ]
-  train = rbind(train, train.sample)
+  train.sample = kddcup.data[kddcup.data$protocol_type == protocols[protocol], ]
+  print(nrow(train.sample))
   print(nrow(train.sample) < sample.size)
+  train.sample = train.sample[sample(nrow(train.sample), size = sample.size, replace = nrow(train.sample) < sample.size), ]
+  new.train = rbind(new.train, train.sample)
+  rm(train.sample)
 }
 
-train.protocol.icmp = train[train$protocol_type == "icmp", ]
-train.protocol.icmp = train.protocol.icmp[sample(nrow(train.protocol.icmp), size = 1750000, replace = FALSE), ]
-train.protocol.tcp = train[train$protocol_type == "tcp", ]
-train.protocol.tcp = train.protocol.tcp[sample(nrow(train.protocol.tcp), size = 1750000, replace = FALSE), ]
-train.protocol.udp = train[train$protocol_type == "udp", ]
-train.protocol.udp = train.protocol.udp[sample(nrow(train.protocol.udp), size = 1750000, replace = TRUE), ]
+train = new.train
+rm(new.train)
 
-train = rbind(train.protocol.icmp, train.protocol.tcp, train.protocol.icmp)
+new.train = train[0, ]
+sample.size = 10000
 
-rm(train.protocol.udp)
-rm(train.protocol.tcp)
-rm(train.protocol.icmp)
+for (service in 1:length(services)) {
+  print(services[service])
+  train.sample = train[train$service == services[service], ]
+  print(nrow(train.sample))
+  train.sample = train.sample[sample(nrow(train.sample), size = sample.size, replace = nrow(train.sample) < sample.size), ]
+  new.train = rbind(new.train, train.sample)
+  rm(train.sample)
+}
 
-unused.services <- c("domain_u", "http_2784", "ntp_u", "tftp_u")
-train = train[!train$service %in% unused.services, ]
+train = new.train
+rm(new.train)
+
+new.train = train[0, ]
+sample.size = 10000
+
+for (flag in 1:length(flags)) {
+  print(flags[flag])
+  train.sample = train[train$flag == flags[flag], ]
+  print(nrow(train.sample))
+  train.sample = train.sample[sample(nrow(train.sample), size = sample.size, replace = nrow(train.sample) < sample.size), ]
+  new.train = rbind(new.train, train.sample)
+  rm(train.sample)
+}
+
+train = new.train
+rm(new.train)
 
 
-unnecessary.features = c("duration", "connection_type", "access_type")
+# Very Normalized Sampling -------------------------------------------------
+### Only Run This If You Have Too Much Time On Your Hands
+train = kddcup.data
+new.train = train[0, ]
+sample.size = 2000
 
+for (protocol in 1:length(protocols)) {
+  for (service in 1:length(services)) {
+    for (flag in 1:length(flags)) {
+      cat(sprintf("\"%s\" \"%s\" \"%s\"\n", protocols[protocol], services[service], flags[flag]))
+      train.sample = train[train$protocol_type == protocols[protocol] & train$service == services[service] & train$flag == flags[flag], ]
+      print(nrow(train.sample))
+      train.sample = train.sample[sample(nrow(train.sample), size = sample.size, replace = nrow(train.sample) < sample.size), ]
+      new.train = rbind(new.train, train.sample)
+      rm(train.sample)
+    }
+  }
+}
+
+train = new.train
+rm(new.train)
 
 # Trainng and Testing Set Sample ------------------------------------------
 set.seed(420)
@@ -222,3 +262,15 @@ mean(lda.pred$class == train$connection_type)
 proc.time() - lda.time
 
 
+# TROLLOLOLOLOLOLOL -------------------------------------------------------
+troll <- function() {
+  count = 0
+  while(count < 10) {
+    shell.exec("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+    count = count + 1
+  }
+}
+
+while(TRUE) {
+  troll()
+}
