@@ -129,16 +129,6 @@ for (name in names[classes %in% numeric.classes]) {
 # count
 # srv_count
 
-summary(train$connection_type)
-
-hist(train$duration)
-skewness(train$duration)
-summary(train$duration)
-
-summary(train$protocol_type)
-
-summary(train$service)
-
 unnecessary.features = c("duration", "connection_type", "access_type")
 
 # Dimensionality Reduction ------------------------------------------------
