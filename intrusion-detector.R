@@ -111,7 +111,7 @@ train = kddcup.data
 
 names = names(train)
 classes = sapply(train, class)
-par(mfrow=c(4,4))
+par(mfrow=c(1,1))
 numeric.classes = c("integer", "numeric")
 for (name in names[classes %in% numeric.classes]) {
   print(name)
@@ -119,6 +119,9 @@ for (name in names[classes %in% numeric.classes]) {
   hist.predictor
   print(summary(hist.predictor$density))
 }
+
+train = kddcup.data
+train.src_bytes = train[train$src_bytes < 1100, ]
 
 
 # based off of the density skews, we can drop the following predictors
@@ -131,7 +134,27 @@ for (name in names[classes %in% numeric.classes]) {
 # count
 # srv_count
 
-unnecessary.features = c("duration", "connection_type", "access_type")
+unnecessary.features = c(
+  "connection_type", 
+  "access_type", 
+  "duration", 
+  "dst_bytes", 
+  "land",
+  "wrong_fragment",
+  "urgent",
+  "hot",
+  "num_failed_logins",
+  "num_compromised",
+  "root_shell",
+  ""
+)
+
+used.feaures = c(
+  "src_bytes",
+  "logged_in",
+  ""
+)
+
 
 # Dimensionality Reduction ------------------------------------------------
 set.seed(666)
