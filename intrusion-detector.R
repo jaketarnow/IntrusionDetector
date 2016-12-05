@@ -134,13 +134,18 @@ unnecessary.features = c("duration", "connection_type", "access_type")
 # Dimensionality Reduction ------------------------------------------------
 set.seed(666)
 
-
 # Quick And Dirty Sampling ------------------------------------------------
 train = kddcup.data
 
+connections = names(summary(train$connection_type))
 protocols = names(summary(train$protocol_type))
 services = names(summary(train$service))
 flags = names(summary(train$flag))
+
+# TODO:
+# Combine training samples
+# Check if a sample of each exists in final set
+# Create new test set
 
 new.train = train[0, ]
 sample.size = 2750000
@@ -211,22 +216,29 @@ for (protocol in 1:length(protocols)) {
 train = new.train
 rm(new.train)
 
+new.train = train[0, ]
+sample.size = 20000
+
+for (connection in 1:length(connections)) {
+  print(connections[connection])
+  train.sample = kddcup.data[kddcup.data$connection_type == connections[connection], ]
+  print(nrow(train.sample))
+  if (nrow(train.sample) < sample.size) {
+    train.sample = train.sample[sample(nrow(train.sample), size = nrow(train.sample), replace = FALSE), ]
+  } else {
+    train.sample = train.sample[sample(nrow(train.sample), size = 0.1*nrow(train.sample), replace = TRUE), ]
+  }
+  new.train = rbind(new.train, train.sample)
+  rm(train.sample)
+}
+
+train = new.train
+rm(new.train)
+
 # Trainng and Testing Set Sample ------------------------------------------
 set.seed(420)
 
-train.good = train[train$access_type == "Good", ]
-train.bad = train[train$access_type == "Bad", ]
-train.good.1 = train.good[sample(nrow(train.good), size = 500000, replace = FALSE), ]
-train.bad.1 = train.bad[sample(nrow(train.bad), size = 500000, replace = FALSE), ]
-train.1M = rbind(train.good.1, train.bad.1)
-
-rm(train.good)
-rm(train.bad)
-rm(train.good.1)
-rm(train.bad.1)
-
 test.1 = kddcup.data.ten.percent[!kddcup.data.ten.percent$service == "pm_dump", ]
-test.2 = kddcup.testdata[sample(nrow(kddcup.testdata), size = 1000000, replace = FALSE), ]
 
 # Logistic Regression -----------------------------------------------------
 glm.fit.time <- proc.time()
