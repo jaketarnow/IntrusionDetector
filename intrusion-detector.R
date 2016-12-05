@@ -36,11 +36,12 @@ bad_connections <- c(
 )
 #good_connections <- c()
 
-kddcup.data <- cbind(kddcup.data, rep("Good", dim(kddcup.data)[1]))
-kddcup.data.ten.percent <- cbind(kddcup.data.ten.percent, rep("Good", dim(kddcup.data.ten.percent)[1]))
+# Good = 0 || Bad = 1
+kddcup.data <- cbind(kddcup.data, rep(0, dim(kddcup.data)[1]))
+kddcup.data.ten.percent <- cbind(kddcup.data.ten.percent, rep(0, dim(kddcup.data.ten.percent)[1]))
 
-kddcup.testdata <- cbind(kddcup.testdata, rep(NA, dim(kddcup.testdata)[1]))
-kddcup.testdata <- cbind(kddcup.testdata, rep(NA, dim(kddcup.testdata)[1]))
+kddcup.testdata <- cbind(kddcup.testdata, rep(as.factor(NA), dim(kddcup.testdata)[1]))
+kddcup.testdata <- cbind(kddcup.testdata, rep(as.factor(NA), dim(kddcup.testdata)[1]))
 
 column_names <- c(
   "duration",
@@ -92,11 +93,12 @@ colnames(kddcup.data) = column_names
 colnames(kddcup.data.ten.percent) = column_names
 colnames(kddcup.testdata) = column_names
 
-kddcup.data$access_type = "Good"
-kddcup.data.ten.percent$access_type = "Good"
+# Good = 0 || Bad = 1
+kddcup.data$access_type = 0
+kddcup.data.ten.percent$access_type = 0
 
-kddcup.data$access_type[kddcup.data$connection_type %in% bad_connections] = "Bad"
-kddcup.data.ten.percent$access_type[kddcup.data.ten.percent$connection_type %in% bad_connections] = "Bad"
+kddcup.data$access_type[kddcup.data$connection_type %in% bad_connections] = 1
+kddcup.data.ten.percent$access_type[kddcup.data.ten.percent$connection_type %in% bad_connections] = 1
 
 train = kddcup.data
 
@@ -166,21 +168,6 @@ rm(new.train)
 new.train = train[0, ]
 sample.size = 10000
 
-for (service in 1:length(services)) {
-  print(services[service])
-  train.sample = train[train$service == services[service], ]
-  print(nrow(train.sample))
-  train.sample = train.sample[sample(nrow(train.sample), size = sample.size, replace = nrow(train.sample) < sample.size), ]
-  new.train = rbind(new.train, train.sample)
-  rm(train.sample)
-}
-
-train = new.train
-rm(new.train)
-
-new.train = train[0, ]
-sample.size = 10000
-
 for (flag in 1:length(flags)) {
   print(flags[flag])
   train.sample = train[train$flag == flags[flag], ]
@@ -193,6 +180,43 @@ for (flag in 1:length(flags)) {
 train = new.train
 rm(new.train)
 
+new.train = train[0, ]
+sample.size = 20000
+
+for (connection in 1:length(connections)) {
+  print(connections[connection])
+  train.sample = kddcup.data[kddcup.data$connection_type == connections[connection], ]
+  print(nrow(train.sample))
+  if (nrow(train.sample) < sample.size) {
+    train.sample = train.sample[sample(nrow(train.sample), size = nrow(train.sample), replace = nrow(train.sample) < sample.size), ]
+  } else {
+    train.sample = train.sample[sample(nrow(train.sample), size = 0.1*nrow(train.sample), replace = nrow(train.sample) < sample.size), ]
+  }
+  new.train = rbind(new.train, train.sample)
+  rm(train.sample)
+}
+
+train = new.train
+rm(new.train)
+
+new.train = train[0, ]
+sample.size = 20000
+
+for (service in 1:length(services)) {
+  print(services[service])
+  train.sample = kddcup.data[kddcup.data$service == services[service], ]
+  print(nrow(train.sample))
+  if (nrow(train.sample) < sample.size) {
+    train.sample = train.sample[sample(nrow(train.sample), size = nrow(train.sample), replace = nrow(train.sample) < sample.size), ]
+  } else {
+    train.sample = train.sample[sample(nrow(train.sample), size = 0.1*nrow(train.sample), replace = nrow(train.sample) < sample.size), ]
+  }
+  new.train = rbind(new.train, train.sample)
+  rm(train.sample)
+}
+
+train = rbind(train, new.train)
+rm(new.train)
 
 # Very Normalized Sampling -------------------------------------------------
 ### Only Run This If You Have Too Much Time On Your Hands
@@ -216,38 +240,19 @@ for (protocol in 1:length(protocols)) {
 train = new.train
 rm(new.train)
 
-new.train = train[0, ]
-sample.size = 20000
-
-for (connection in 1:length(connections)) {
-  print(connections[connection])
-  train.sample = kddcup.data[kddcup.data$connection_type == connections[connection], ]
-  print(nrow(train.sample))
-  if (nrow(train.sample) < sample.size) {
-    train.sample = train.sample[sample(nrow(train.sample), size = nrow(train.sample), replace = FALSE), ]
-  } else {
-    train.sample = train.sample[sample(nrow(train.sample), size = 0.1*nrow(train.sample), replace = TRUE), ]
-  }
-  new.train = rbind(new.train, train.sample)
-  rm(train.sample)
-}
-
-train = new.train
-rm(new.train)
-
 # Trainng and Testing Set Sample ------------------------------------------
 set.seed(420)
 
-test.1 = kddcup.data.ten.percent[!kddcup.data.ten.percent$service == "pm_dump", ]
+test = kddcup.testdata[!kddcup.testdata$service == "icmp", ]
 
 # Logistic Regression -----------------------------------------------------
 glm.fit.time <- proc.time()
 
-glm.fit = glm(access_type~.-num_outbound_cmds-connection_type, data=train.1M, family=binomial)
+glm.fit = glm(access_type~.-num_outbound_cmds-connection_type-access_type-duration, data=train, family=binomial)
 summary(glm.fit)
-glm.probs = predict(glm.fit, newdata = test.1, type = "response")
+glm.probs = predict(glm.fit, newdata = test, type = "response")
 glm.pred = ifelse(glm.probs > 0.5, 1, 0)
-glm.pred.accesses = test.1$access_type
+glm.pred.accesses = test$access_type
 
 glm.time = proc.time() - glm.fit.time
 glm.time[3]/60
