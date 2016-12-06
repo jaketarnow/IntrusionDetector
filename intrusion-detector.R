@@ -1,14 +1,29 @@
+install.packages("multicore")
+install.packages("data.table")
+
 library(ISLR)
 library(MASS)
 library(e1071)
+library(parallel)
+library(data.table)
 
 # Data Setup --------------------------------------------------------------
 # setwd("path to directory where the data files are stored")
 getwd() # to check if the working directory is the correct path
 
-kddcup.data = read.csv("kddcup.data.csv")
-kddcup.data.ten.percent = read.csv("kddcup.data_10_percent.csv")
-kddcup.testdata = read.csv("kddcup.testdata.csv")
+data.load.time <- proc.time()
+
+kddcup.data = fread("kddcup.data.csv")
+kddcup.data.ten.percent = fread("kddcup.data_10_percent.csv")
+kddcup.testdata = fread("kddcup.testdata.csv")
+
+data.load.time = proc.time() - data.load.time
+if (data.load.time[3] > 60) {
+  cat(sprintf("%f minutes \n", data.load.time[3]/60))
+} else {
+  cat(sprintf("%f seconds \n", data.load.time[3]))
+}
+rm(data.load.time)
 
 bad_connections <- c(
   "back.",
@@ -271,7 +286,7 @@ test = kddcup.testdata[!kddcup.testdata$service == "icmp", ]
 # Logistic Regression -----------------------------------------------------
 glm.fit.time <- proc.time()
 
-glm.fit = glm(access_type~.-num_outbound_cmds-connection_type-access_type-duration, data=train, family=binomial)
+glm.fit = glm(access_type~src_bytes+logged_in, data=train, family=binomial)
 summary(glm.fit)
 glm.probs = predict(glm.fit, newdata = test, type = "response")
 glm.pred = ifelse(glm.probs > 0.5, 1, 0)
