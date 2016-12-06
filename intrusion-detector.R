@@ -1,7 +1,7 @@
-# install.packages("multicore")
-# install.packages("data.table")
-# install.packages("foreach")
-# install.packages("doParallel")
+install.packages("multicore")
+install.packages("data.table")
+install.packages("foreach")
+install.packages("doParallel")
 
 library(ISLR)
 library(MASS)
@@ -11,6 +11,7 @@ library(parallel)
 library(iterators)
 library(doParallel)
 library(data.table)
+library(tree)
 
 # Print RunTime -----------------------------------------------------------
 
@@ -408,28 +409,58 @@ mean(lda.pred$class == kddcup.data.ten.percent$access_type)
 print.time(lda.fit.time)
 rm(lda.fit.time)
 
+# Quadratic Discriminant Analysis (QDA) -----------------------------------
+
+qda.fit.time <- proc.time()
+
+qda.fit = qda(access_type~
+                +src_bytes
+              +logged_in
+              +count
+              +srv_count
+              +serror_rate
+              +srv_serror_rate
+              +rerror_rate
+              +srv_rerror_rate
+              +same_srv_rate
+              +diff_srv_rate
+              +srv_diff_host_rate
+              +dst_host_count
+              +dst_host_srv_count
+              +dst_host_same_srv_rate
+              +dst_host_diff_srv_rate
+              +dst_host_same_src_port_rate
+              +dst_host_srv_diff_host_rate
+              +dst_host_serror_rate
+              +dst_host_srv_serror_rate
+              +dst_host_rerror_rate
+              , data=train)
+summary(qda.fit)
+qda.pred = predict(qda.fit, newdata=kddcup.data.ten.percent)
+table(qda.pred$class, kddcup.data.ten.percent$access_type)
+mean(qda.pred$class == kddcup.data.ten.percent$access_type)
+
+print.time(qda.fit.time)
+rm(qda.fit.time)
+
 #K-Nearest Neighbors ---------------------------------------
-?knn
-#attach(Smarket)
-## Lag1/2 are predictions so we need to replace with our own.
-Xlag=cbind(Lag1,Lag2)
-## training set 
-train= ...
-
 ## we should perform KNN on number of neighbours (k) = 1 first, more flexible fit giving low variance but high bias
-knn.pred=knn(Xlag[train,],Xlag[!train,],Direction[train],k=1)
-table(knn.pred,Direction[!train])
-mean(knn.pred==Direction[!train])
+newnewtrain = kddcup.data.ten.percent$access_type
+trainK = cbind(used.feaures)[newnewtrain, ]
+testK = cbind(used.feaures)[!newnewtrain, ]
+set.seed(1)
+knn.pred = knn(trainK, testK, train, k = 1)
+table(knn.pred, train)
+mean(knn.pred != train)
 
-## KNN on k = 9 which is a high k value, provides low flexibility (high variance) but low bias
-knn.pred=knn(Xlag[train,],Xlag[!train,],Direction[train],k=9)
-table(knn.pred,Direction[!train])
-mean(knn.pred==Direction[!train])
 
-## Depending on results of 1 and 9 we should run a k value in between to see if we get better results
-knn.pred=knn(Xlag[train,],Xlag[!train,],Direction[train],k=9)
-table(knn.pred,Direction[!train])
-mean(knn.pred==Direction[!train])
+# Decision Tree
+head(kddcup.data.ten.percent$connection_type)
+range(kddcup.data.ten.percent$connection_type)
+binIt = ifelse(kddcup.data.ten.percent$src_bytes, "Less", "More")
+trainDT = data.frame(kddcup.data.ten.percent$src_bytes, binIt)
+tree.model = tree(binIt~., trainDT)
+plot(tree.model)
 
 # TODO:
 # Supervised
@@ -443,4 +474,11 @@ mean(knn.pred==Direction[!train])
 
 # Unsupervised
 #   Clustering
+x = 
+hc.complete=hclust(dist(x),method="complete")
+plot(hc.complete)
+hc.single=hclust(dist(x),method="single")
+plot(hc.single)
+hc.average=hclust(dist(x),method="average")
+plot(hc.average)
 
