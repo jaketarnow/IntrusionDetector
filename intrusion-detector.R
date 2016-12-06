@@ -330,8 +330,6 @@ test = kddcup.testdata.ten.percent
 glm.fit.time <- proc.time()
 
 glm.fit = glm(access_type~
-              +src_bytes
-              +logged_in
               +flag
               +src_bytes
               +logged_in
@@ -373,8 +371,6 @@ rm(glm.fit.time)
 lda.fit.time <- proc.time()
 
 lda.fit = lda(access_type~
-                +src_bytes
-              +logged_in
               +flag
               +src_bytes
               +logged_in
@@ -414,7 +410,7 @@ rm(lda.fit.time)
 qda.fit.time <- proc.time()
 
 qda.fit = qda(access_type~
-                +src_bytes
+              +src_bytes
               +logged_in
               +count
               +srv_count
@@ -455,12 +451,7 @@ mean(knn.pred != train)
 
 
 # Decision Tree
-head(kddcup.data.ten.percent$connection_type)
-range(kddcup.data.ten.percent$connection_type)
-binIt = ifelse(kddcup.data.ten.percent$src_bytes, "Less", "More")
-trainDT = data.frame(kddcup.data.ten.percent$src_bytes, binIt)
-tree.model = tree(binIt~., trainDT)
-plot(tree.model)
+names(kddcup.data.ten.percent)
 
 # TODO:
 # Supervised
