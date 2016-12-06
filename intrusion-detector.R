@@ -328,10 +328,6 @@ test = kddcup.testdata.ten.percent
 # Logistic Regression -----------------------------------------------------
 glm.fit.time <- proc.time()
 
-# TODO: 
-# Add used features
-# Tune
-
 glm.fit = glm(access_type~
               +src_bytes
               +logged_in
@@ -373,15 +369,50 @@ print.time(glm.fit.time)
 rm(glm.fit.time)
 
 # Linear Discriminant Analysis (LDA) --------------------------------------
-lda.fit = lda(train$connection_type~train$flag + train$access_type + train$num_outbound_cmds, data=train, family = binomial)
-lda.pred = predict(lda.fit, train$connection_type, type = "response")
-table(lda.pred$class, train$connection_type)
-mean(lda.pred$class == train$connection_type)
-proc.time() - lda.time
+lda.fit.time <- proc.time()
+
+lda.fit = lda(access_type~
+                +src_bytes
+              +logged_in
+              +flag
+              +src_bytes
+              +logged_in
+              +num_root
+              +num_file_creations
+              +count
+              +srv_count
+              +serror_rate
+              +srv_serror_rate
+              +rerror_rate
+              +srv_rerror_rate
+              +same_srv_rate
+              +diff_srv_rate
+              +srv_diff_host_rate
+              +dst_host_count
+              +dst_host_srv_count
+              +dst_host_same_srv_rate
+              +dst_host_diff_srv_rate
+              +dst_host_same_src_port_rate
+              +dst_host_srv_diff_host_rate
+              +dst_host_serror_rate
+              +dst_host_srv_serror_rate
+              +dst_host_rerror_rate
+              +dst_host_srv_rerror_rate
+              -access_type
+              -connection_type, data=train, family=binomial)
+summary(lda.fit)
+lda.pred = predict(lda.fit, newdata=kddcup.data.ten.percent, type = "response")
+table(lda.pred$class, kddcup.data.ten.percent$access_type)
+mean(lda.pred$class == kddcup.data.ten.percent$access_type)
+
+print.time(lda.fit.time)
+rm(lda.fit.time)
 
 
 # TODO:
 # Supervised
+#   GLM
+#   LDA
 #   KNN
 #   SVM
 #   Decision Tree
@@ -391,17 +422,3 @@ proc.time() - lda.time
 # Unsupervised
 #   Clustering
 #   K-Means
-
-
-# TROLLOLOLOLOLOLOL -------------------------------------------------------
-troll <- function() {
-  count = 0
-  while(count < 10) {
-    shell.exec("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
-    count = count + 1
-  }
-}
-
-while(TRUE) {
-  troll()
-}
