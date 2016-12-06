@@ -379,9 +379,9 @@ table(lda.pred$class, train$connection_type)
 mean(lda.pred$class == train$connection_type)
 proc.time() - lda.time
 
-
+#K-Nearest Neighbors ---------------------------------------
 ?knn
-attach(Smarket)
+#attach(Smarket)
 ## Lag1/2 are predictions so we need to replace with our own.
 Xlag=cbind(Lag1,Lag2)
 ## training set 
