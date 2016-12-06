@@ -1,11 +1,40 @@
-install.packages("multicore")
-install.packages("data.table")
+# install.packages("multicore")
+# install.packages("data.table")
+# install.packages("foreach")
+# install.packages("doParallel")
 
 library(ISLR)
 library(MASS)
 library(e1071)
+library(foreach)
 library(parallel)
+library(iterators)
+library(doParallel)
 library(data.table)
+
+# Print RunTime -----------------------------------------------------------
+
+print.time <- function(starttime) {
+  starttime = proc.time() - starttime
+  if (starttime[3] > 60) {
+    cat(sprintf("%f minutes \n", starttime[3]/60))
+  } else {
+    cat(sprintf("%f seconds \n", starttime[3]))
+  }
+  rm(starttime)
+}
+
+# Setup MultiProcessing ---------------------------------------------------
+# This is setting up for multicore processing
+
+packages <- c("foreach", "doParallel")
+
+num_cores <- detectCores() - 2
+# This Will require permissions (So let's not use)
+# core_cluster <- makeCluster(num_cores)
+registerDoParallel(cores = num_cores)
+# getDoParWorkers()
+
 
 # Data Setup --------------------------------------------------------------
 # setwd("path to directory where the data files are stored")
@@ -16,13 +45,9 @@ data.load.time <- proc.time()
 kddcup.data = fread("kddcup.data.csv")
 kddcup.data.ten.percent = fread("kddcup.data_10_percent.csv")
 kddcup.testdata = fread("kddcup.testdata.csv")
+kddcup.testdata.ten.percent = fread("kddcup.testdata_10_percent.csv")
 
-data.load.time = proc.time() - data.load.time
-if (data.load.time[3] > 60) {
-  cat(sprintf("%f minutes \n", data.load.time[3]/60))
-} else {
-  cat(sprintf("%f seconds \n", data.load.time[3]))
-}
+print.time(data.load.time)
 rm(data.load.time)
 
 bad_connections <- c(
@@ -57,6 +82,9 @@ kddcup.data.ten.percent <- cbind(kddcup.data.ten.percent, rep(0, dim(kddcup.data
 
 kddcup.testdata <- cbind(kddcup.testdata, rep(as.factor(NA), dim(kddcup.testdata)[1]))
 kddcup.testdata <- cbind(kddcup.testdata, rep(as.factor(NA), dim(kddcup.testdata)[1]))
+
+kddcup.testdata.ten.percent <- cbind(kddcup.testdata.ten.percent, rep(as.factor(NA), dim(kddcup.testdata.ten.percent)[1]))
+kddcup.testdata.ten.percent <- cbind(kddcup.testdata.ten.percent, rep(as.factor(NA), dim(kddcup.testdata.ten.percent)[1]))
 
 column_names <- c(
   "duration",
@@ -107,6 +135,7 @@ column_names <- c(
 colnames(kddcup.data) = column_names
 colnames(kddcup.data.ten.percent) = column_names
 colnames(kddcup.testdata) = column_names
+colnames(kddcup.testdata.ten.percent) = column_names
 
 # Good = 0 || Bad = 1
 kddcup.data$access_type = 0
@@ -167,56 +196,47 @@ unnecessary.features = c(
 used.feaures = c(
   "src_bytes",
   "logged_in",
-  ""
+  "flagREJ",
+  "flagRSTR",
+  "flagS1",
+  "flagS2",
+  "flagS3",
+  "src_bytes",
+  "logged_in",
+  "num_root",
+  "num_file_creations",
+  "count",
+  "srv_count",
+  "serror_rate",
+  "srv_serror_rate",
+  "rerror_rate",
+  "srv_rerror_rate",
+  "same_srv_rate",
+  "diff_srv_rate",
+  "srv_diff_host_rate",
+  "dst_host_count",
+  "dst_host_srv_count",
+  "dst_host_same_srv_rate",
+  "dst_host_diff_srv_rate",
+  "dst_host_same_src_port_rate",
+  "dst_host_srv_diff_host_rate",
+  "dst_host_serror_rate",
+  "dst_host_srv_serror_rate",
+  "dst_host_rerror_rate",
+  "dst_host_srv_rerror_rate"
 )
 
 
 # Dimensionality Reduction ------------------------------------------------
 set.seed(666)
-
-# Quick And Dirty Sampling ------------------------------------------------
 train = kddcup.data
 
-connections = names(summary(train$connection_type))
-protocols = names(summary(train$protocol_type))
-services = names(summary(train$service))
-flags = names(summary(train$flag))
+connections = unique(train$connection_type)
+protocols = unique(train$protocol_type)
+services = unique(train$service)
+flags = unique(train$flag)
 
-# TODO:
-# Combine training samples
-# Check if a sample of each exists in final set
-# Create new test set
-
-new.train = train[0, ]
-sample.size = 2750000
-
-for (protocol in 1:length(protocols)) {
-  print(protocols[protocol])
-  train.sample = kddcup.data[kddcup.data$protocol_type == protocols[protocol], ]
-  print(nrow(train.sample))
-  print(nrow(train.sample) < sample.size)
-  train.sample = train.sample[sample(nrow(train.sample), size = sample.size, replace = nrow(train.sample) < sample.size), ]
-  new.train = rbind(new.train, train.sample)
-  rm(train.sample)
-}
-
-train = new.train
-rm(new.train)
-
-new.train = train[0, ]
-sample.size = 10000
-
-for (flag in 1:length(flags)) {
-  print(flags[flag])
-  train.sample = train[train$flag == flags[flag], ]
-  print(nrow(train.sample))
-  train.sample = train.sample[sample(nrow(train.sample), size = sample.size, replace = nrow(train.sample) < sample.size), ]
-  new.train = rbind(new.train, train.sample)
-  rm(train.sample)
-}
-
-train = new.train
-rm(new.train)
+# Quick And Dirty Sampling ------------------------------------------------
 
 new.train = train[0, ]
 sample.size = 20000
@@ -262,42 +282,95 @@ train = kddcup.data
 new.train = train[0, ]
 sample.size = 2000
 
-for (protocol in 1:length(protocols)) {
-  for (service in 1:length(services)) {
-    for (flag in 1:length(flags)) {
-      cat(sprintf("\"%s\" \"%s\" \"%s\"\n", protocols[protocol], services[service], flags[flag]))
-      train.sample = train[train$protocol_type == protocols[protocol] & train$service == services[service] & train$flag == flags[flag], ]
-      print(nrow(train.sample))
-      train.sample = train.sample[sample(nrow(train.sample), size = sample.size, replace = nrow(train.sample) < sample.size), ]
-      new.train = rbind(new.train, train.sample)
-      rm(train.sample)
+print.sample <- function(c, p, s, f) {
+  cat(sprintf("\"%s\" \"%s\" \"%s\" \"%s\"\n", connections[c], protocols[p], services[s], flags[f]))
+}
+
+sample.train <- function(c, p, s, f) {
+  train.sample = train[train$connection_type == connections[c] & 
+                                              train$protocol_type == protocols[p] &
+                                              train$service == services[s] &
+                                              train$flag == flags[f], ]
+  if (nrow(train.sample) < sample.size) {
+    train.sample = train.sample[sample(nrow(train.sample), size = nrow(train.sample), replace = TRUE), ]
+  } else {
+    train.sample = train.sample[sample(nrow(train.sample), size = 0.1*nrow(train.sample), FALSE), ]
+  }
+  
+  return(train.sample)
+}
+
+nestedfor.time <- proc.time()
+
+for (connection in 1:length(connections)) {
+  for (protocol in 1:length(protocols)) {
+    for (service in 1:length(services)) {
+      for (flag in 1:length(flags)) {
+        print.sample(connection, protocol, service, flag)
+        train.sample = sample.train(connection, protocol, service, flag)
+        new.train = rbind(new.train, train.sample)
+        rm(train.sample)
+      }
     }
   }
 }
 
+print.time(nestedfor.time)
+rm(nestedfor.time)
+
 train = new.train
 rm(new.train)
 
-# Trainng and Testing Set Sample ------------------------------------------
-set.seed(420)
-
-test = kddcup.testdata[!kddcup.testdata$service == "icmp", ]
+# Basic Trainng and Testing Set Sample ------------------------------------------
+train = kddcup.data.ten.percent
+test = kddcup.testdata.ten.percent
 
 # Logistic Regression -----------------------------------------------------
 glm.fit.time <- proc.time()
 
-glm.fit = glm(access_type~src_bytes+logged_in, data=train, family=binomial)
-summary(glm.fit)
-glm.probs = predict(glm.fit, newdata = test, type = "response")
-glm.pred = ifelse(glm.probs > 0.5, 1, 0)
-glm.pred.accesses = test$access_type
+# TODO: 
+# Add used features
+# Tune
 
-glm.time = proc.time() - glm.fit.time
-glm.time[3]/60
+glm.fit = glm(access_type~
+              +src_bytes
+              +logged_in
+              +flag
+              +src_bytes
+              +logged_in
+              +num_root
+              +num_file_creations
+              +count
+              +srv_count
+              +serror_rate
+              +srv_serror_rate
+              +rerror_rate
+              +srv_rerror_rate
+              +same_srv_rate
+              +diff_srv_rate
+              +srv_diff_host_rate
+              +dst_host_count
+              +dst_host_srv_count
+              +dst_host_same_srv_rate
+              +dst_host_diff_srv_rate
+              +dst_host_same_src_port_rate
+              +dst_host_srv_diff_host_rate
+              +dst_host_serror_rate
+              +dst_host_srv_serror_rate
+              +dst_host_rerror_rate
+              +dst_host_srv_rerror_rate
+              -access_type
+              -connection_type, data=train, family=binomial)
+summary(glm.fit)
+glm.probs = predict(glm.fit, newdata=kddcup.data.ten.percent, type = "response")
+glm.pred = ifelse(glm.probs > 0.5, 1, 0)
+glm.pred.accesses = kddcup.data.ten.percent$access_type
 
 table(glm.pred, glm.pred.accesses)
 mean(glm.pred == glm.pred.accesses)
 
+print.time(glm.fit.time)
+rm(glm.fit.time)
 
 # Linear Discriminant Analysis (LDA) --------------------------------------
 lda.fit = lda(train$connection_type~train$flag + train$access_type + train$num_outbound_cmds, data=train, family = binomial)
@@ -305,6 +378,19 @@ lda.pred = predict(lda.fit, train$connection_type, type = "response")
 table(lda.pred$class, train$connection_type)
 mean(lda.pred$class == train$connection_type)
 proc.time() - lda.time
+
+
+# TODO:
+# Supervised
+#   KNN
+#   SVM
+#   Decision Tree
+#   BS
+#   CV
+
+# Unsupervised
+#   Clustering
+#   K-Means
 
 
 # TROLLOLOLOLOLOLOL -------------------------------------------------------
