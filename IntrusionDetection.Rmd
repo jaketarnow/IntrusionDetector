@@ -16,6 +16,7 @@ install.packages("multicore")
 install.packages("data.table")
 install.packages("foreach")
 install.packages("doParallel")
+install.packages("knitr")
 ```
 
 ## Call all libraries
@@ -113,6 +114,7 @@ bad_connections <- c(
 kddcup.data <- cbind(kddcup.data, rep(0, dim(kddcup.data)[1]))
 kddcup.data.ten.percent <- cbind(kddcup.data.ten.percent, rep(0, dim(kddcup.data.ten.percent)[1]))
 
+# Adding 2 Columns for the test data set
 kddcup.testdata <- cbind(kddcup.testdata, rep(as.factor(NA), dim(kddcup.testdata)[1]))
 kddcup.testdata <- cbind(kddcup.testdata, rep(as.factor(NA), dim(kddcup.testdata)[1]))
 
@@ -176,6 +178,7 @@ colnames(kddcup.data.ten.percent) = column_names
 colnames(kddcup.testdata) = column_names
 colnames(kddcup.testdata.ten.percent) = column_names
 
+# Sets all accesses as good, replace as bad if in bad_connections
 # Good = 0 || Bad = 1
 kddcup.data$access_type = 0
 kddcup.data.ten.percent$access_type = 0
@@ -212,14 +215,7 @@ train.src_bytes = train[train$src_bytes < 1100, ]
 
 
 # based off of the density skews, we can drop the following predictors
-# duration
-# src_bytes
-# dst_bytes
-# hot
-# num_compromised
-# num_root
-# count
-# srv_count
+# Here are just a handful of the unnecessary features
 
 unnecessary.features = c(
   "connection_type", 
@@ -236,6 +232,7 @@ unnecessary.features = c(
   ""
 )
 
+# Statistically Significant After Sampling
 used.feaures = c(
   "src_bytes",
   "logged_in",
@@ -284,6 +281,8 @@ Quick way to gain a decent sample. But later on you can grab the sample that we 
 
 ```{r}
 # Quick And Dirty Sampling ------------------------------------------------
+# Just Takes a 10 percent sample
+# Still Very Skewed
 
 new.train = train[0, ]
 sample.size = 20000
@@ -329,6 +328,10 @@ Run this at your own risk!!
 ```{r}
 # Very Normalized Sampling -------------------------------------------------
 ### Only Run This If You Have Too Much Time On Your Hands
+# Creates a sample where All possible combinations of connections are trained
+# In order for us not to have to run this everytime, we have exported the data in a .RData file that we can load
+# when we restart R Studio's workspace
+
 train = kddcup.data
 new.train = train[0, ]
 sample.size = 2000
@@ -337,6 +340,7 @@ print.sample <- function(c, p, s, f) {
   cat(sprintf("\"%s\" \"%s\" \"%s\" \"%s\"\n", connections[c], protocols[p], services[s], flags[f]))
 }
 
+# Undersampling | Oversampling
 sample.train <- function(c, p, s, f) {
   train.sample = train[train$connection_type == connections[c] & 
                                               train$protocol_type == protocols[p] &
@@ -353,6 +357,7 @@ sample.train <- function(c, p, s, f) {
 
 nestedfor.time <- proc.time()
 
+# Sequential version
 for (connection in 1:length(connections)) {
   for (protocol in 1:length(protocols)) {
     for (service in 1:length(services)) {
@@ -365,6 +370,19 @@ for (connection in 1:length(connections)) {
     }
   }
 }
+
+# Multicore Version
+# Only works on certain OS systems that support multicore processing
+
+# foreach(connection=1:length(connections)) %:%
+#   foreach(protocol=1:length(protocols)) %:%
+#   foreach(service=1:length(services)) %:%
+#   foreach(flag=1:length(flags)) %dopar% {
+#       print.sample(connection, protocol, service, flag)
+#       train.sample = sample.train(connection, protocol, service, flag)
+#       new.train = rbind(new.train, train.sample)
+#       rm(train.sample)
+#   }
 
 print.time(nestedfor.time)
 rm(nestedfor.time)
@@ -517,10 +535,14 @@ rm(qda.fit.time)
 
 ## Including Plots
 
+Due to our large dataset, plotting would crash our systems
+
 You can also embed plots, for example:
 
 ```{r pressure, echo=FALSE}
-plot(pressure)
+plot(glm.pred)
+
+pairs(train)
 ```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
