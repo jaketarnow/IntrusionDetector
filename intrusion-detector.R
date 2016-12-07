@@ -323,33 +323,34 @@ test = kddcup.testdata.ten.percent
 # Logistic Regression -----------------------------------------------------
 glm.fit.time <- proc.time()
 
-glm.fit = glm(access_type~
-              +flag
-              +src_bytes
-              +logged_in
-              +num_root
-              +num_file_creations
-              +count
-              +srv_count
-              +serror_rate
-              +srv_serror_rate
-              +rerror_rate
-              +srv_rerror_rate
-              +same_srv_rate
-              +diff_srv_rate
-              +srv_diff_host_rate
-              +dst_host_count
-              +dst_host_srv_count
-              +dst_host_same_srv_rate
-              +dst_host_diff_srv_rate
-              +dst_host_same_src_port_rate
-              +dst_host_srv_diff_host_rate
-              +dst_host_serror_rate
-              +dst_host_srv_serror_rate
-              +dst_host_rerror_rate
-              +dst_host_srv_rerror_rate
-              -access_type
-              -connection_type, data=train, family=binomial)
+#glm.fit = glm(access_type~
+#              +flag
+#              +src_bytes
+#              +logged_in
+#              +num_root
+#              +num_file_creations
+#              +count
+#              +srv_count
+#              +serror_rate
+#              +srv_serror_rate
+#              +rerror_rate
+#              +srv_rerror_rate
+#              +same_srv_rate
+#              +diff_srv_rate
+#              +srv_diff_host_rate
+#              +dst_host_count
+#              +dst_host_srv_count
+#              +dst_host_same_srv_rate
+#              +dst_host_diff_srv_rate
+#              +dst_host_same_src_port_rate
+#              +dst_host_srv_diff_host_rate
+#              +dst_host_serror_rate
+#              +dst_host_srv_serror_rate
+#              +dst_host_rerror_rate
+#              +dst_host_srv_rerror_rate
+#              -access_type
+#              -connection_type, data=train, family=binomial)
+glm.fit = glm(access_type~src_bytes+logged_in, data=train, family=binomial)
 summary(glm.fit)
 glm.probs = predict(glm.fit, newdata=kddcup.data.ten.percent, type = "response")
 glm.pred = ifelse(glm.probs > 0.5, 1, 0)
@@ -364,33 +365,35 @@ rm(glm.fit.time)
 # Linear Discriminant Analysis (LDA) --------------------------------------
 lda.fit.time <- proc.time()
 
-lda.fit = lda(access_type~
-              +flag
-              +src_bytes
-              +logged_in
-              +num_root
-              +num_file_creations
-              +count
-              +srv_count
-              +serror_rate
-              +srv_serror_rate
-              +rerror_rate
-              +srv_rerror_rate
-              +same_srv_rate
-              +diff_srv_rate
-              +srv_diff_host_rate
-              +dst_host_count
-              +dst_host_srv_count
-              +dst_host_same_srv_rate
-              +dst_host_diff_srv_rate
-              +dst_host_same_src_port_rate
-              +dst_host_srv_diff_host_rate
-              +dst_host_serror_rate
-              +dst_host_srv_serror_rate
-              +dst_host_rerror_rate
-              +dst_host_srv_rerror_rate
-              -access_type
-              -connection_type, data=train, family=binomial)
+#lda.fit = lda(access_type~
+#              +flag
+#              +src_bytes
+#              +logged_in
+#              +num_root
+#              +num_file_creations
+#              +count
+#              +srv_count
+#              +serror_rate
+#              +srv_serror_rate
+#              +rerror_rate
+#              +srv_rerror_rate
+#              +same_srv_rate
+#              +diff_srv_rate
+#              +srv_diff_host_rate
+#              +dst_host_count
+#              +dst_host_srv_count
+#              +dst_host_same_srv_rate
+#              +dst_host_diff_srv_rate
+#              +dst_host_same_src_port_rate
+#              +dst_host_srv_diff_host_rate
+#              +dst_host_serror_rate
+#              +dst_host_srv_serror_rate
+#              +dst_host_rerror_rate
+#              +dst_host_srv_rerror_rate
+#              -access_type
+#              -connection_type, data=train, family=binomial)
+
+lda.fit = lda(access_type~src_bytes+logged_in, data=train, family=binomial)
 summary(lda.fit)
 lda.pred = predict(lda.fit, newdata=kddcup.data.ten.percent, type = "response")
 table(lda.pred$class, kddcup.data.ten.percent$access_type)
@@ -403,28 +406,34 @@ rm(lda.fit.time)
 
 qda.fit.time <- proc.time()
 
-qda.fit = qda(access_type~
-              +src_bytes
-              +logged_in
-              +count
-              +srv_count
-              +serror_rate
-              +srv_serror_rate
-              +rerror_rate
-              +srv_rerror_rate
-              +same_srv_rate
-              +diff_srv_rate
-              +srv_diff_host_rate
-              +dst_host_count
-              +dst_host_srv_count
-              +dst_host_same_srv_rate
-              +dst_host_diff_srv_rate
-              +dst_host_same_src_port_rate
-              +dst_host_srv_diff_host_rate
-              +dst_host_serror_rate
-              +dst_host_srv_serror_rate
-              +dst_host_rerror_rate
-              , data=train)
+#qda.fit = qda(access_type~
+#              +flag
+#              +src_bytes
+#              +logged_in
+#              +num_root
+#              +num_file_creations
+#              +count
+#              +srv_count
+#              +serror_rate
+#              +srv_serror_rate
+#              +rerror_rate
+#              +srv_rerror_rate
+#              +same_srv_rate
+#              +diff_srv_rate
+#              +srv_diff_host_rate
+#              +dst_host_count
+#              +dst_host_srv_count
+#              +dst_host_same_srv_rate
+#              +dst_host_diff_srv_rate
+#              +dst_host_same_src_port_rate
+#              +dst_host_srv_diff_host_rate
+#              +dst_host_serror_rate
+#              +dst_host_srv_serror_rate
+#              +dst_host_rerror_rate
+#              +dst_host_srv_rerror_rate
+#              -access_type
+#              -connection_type, data=train, family=binomial)
+qda.fit = qda(access_type~src_bytes+logged_in, data=train, family=binomial)
 summary(qda.fit)
 qda.pred = predict(qda.fit, newdata=kddcup.data.ten.percent)
 table(qda.pred$class, kddcup.data.ten.percent$access_type)
@@ -474,12 +483,13 @@ plot(tree.model)
 
 # Unsupervised
 #   Hierarchical Clustering
-x = 
-hc.complete=hclust(dist(x),method="complete")
+mydata = c(1,2,3,4,5,5,6,7,1,55,234,67,12,45,7)
+x = dist(as.matrix(trainK))
+hc.complete=hclust(x,method="complete")
 plot(hc.complete)
-hc.single=hclust(dist(x),method="single")
+hc.single=hclust(x,method="single")
 plot(hc.single)
-hc.average=hclust(dist(x),method="average")
+hc.average=hclust(x,method="average")
 plot(hc.average)
 
 # K Means
@@ -489,3 +499,27 @@ unique(kddcup.data.ten.percent$connection_type)
 kCluster = kmeans(kddcup.data.ten.percent$connection_type[, 2:18], 4, nstart=20)
 kCluster
 
+install.packages("caret")
+library(mlbench)
+library(caret)
+# load the dataset
+data(kddcup.data.ten.percent)
+# prepare training scheme
+control <- trainControl(method="repeatedcv", number=10, repeats=3)
+# train the LVQ model
+set.seed(7)
+modelLvq <- train(kddcup.data.ten.percent$connection_type~kddcup.data.ten.percent$src_bytes + kddcup.data.ten.percent$logged_in, data=kddcup.data.ten.percent, method="lvq", trControl=control)
+# train the GBM model
+set.seed(7)
+modelGbm <- train(kddcup.data.ten.percent$connection_type~., data=kddcup.data.ten.percent, method="gbm", trControl=control, verbose=FALSE)
+# train the SVM model
+set.seed(7)
+modelSvm <- train(kddcup.data.ten.percent$connection_type~., data=kddcup.data.ten.percent, method="svmRadial", trControl=control)
+# collect resamples
+results <- resamples(list(LVQ=modelLvq, GBM=modelGbm, SVM=modelSvm))
+# summarize the distributions
+summary(results)
+# boxplots of results
+bwplot(results)
+# dot plots of results
+dotplot(results)
