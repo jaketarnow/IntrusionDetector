@@ -197,13 +197,7 @@ unnecessary.features = c(
 used.feaures = c(
   "src_bytes",
   "logged_in",
-  "flagREJ",
-  "flagRSTR",
-  "flagS1",
-  "flagS2",
-  "flagS3",
-  "src_bytes",
-  "logged_in",
+  "flag",
   "num_root",
   "num_file_creations",
   "count",
@@ -452,6 +446,21 @@ mean(knn.pred != train)
 
 # Decision Tree
 names(kddcup.data.ten.percent)
+newDataforDT = kddcup.data.ten.percent[-kddcup.data.ten.percent$duration]
+High = ifelse(newDataforDT$src_bytes >=500, "Yes", "No")
+set.seed(200)
+trainDT = sample(1:nrow(newDataforDT), nrow(newDataforDT)/2)
+testDT = -trainDT
+dtTrainingData = newDataforDT[trainDT, ]
+dtTestingData = newDataforDT[testDT, ]
+testing_High = High[testDT]
+tree.model = tree(High~., dtTrainingData)
+plot(tree.model)
+
+
+# Bootstrapping
+
+
 
 # TODO:
 # Supervised
@@ -464,7 +473,7 @@ names(kddcup.data.ten.percent)
 #   CV
 
 # Unsupervised
-#   Clustering
+#   Hierarchical Clustering
 x = 
 hc.complete=hclust(dist(x),method="complete")
 plot(hc.complete)
@@ -472,4 +481,11 @@ hc.single=hclust(dist(x),method="single")
 plot(hc.single)
 hc.average=hclust(dist(x),method="average")
 plot(hc.average)
+
+# K Means
+set.seed(20)
+length(kddcup.data.ten.percent$connection_type)
+unique(kddcup.data.ten.percent$connection_type)
+kCluster = kmeans(kddcup.data.ten.percent$connection_type[, 2:18], 4, nstart=20)
+kCluster
 
